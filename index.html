@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ДЕЛО № 031 — Последний ход</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#0d1113;--panel:#171e20;--panel2:#20292b;--ink:#e9e5da;--muted:#9da6a3;--red:#bd594b;--gold:#c5a66a;--line:#364144}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Georgia,serif}
+button,input,textarea{font:inherit}button{background:var(--red);color:white;border:0;padding:12px 16px;cursor:pointer;border-radius:3px;font-family:Arial,sans-serif;font-weight:700}
+button.secondary{background:#303b3e}button:disabled{opacity:.35;cursor:not-allowed}
+header{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:#101618}
+.brand{letter-spacing:.16em;font:700 12px Arial,sans-serif;color:var(--gold)}.room{font:12px Arial,sans-serif;color:var(--muted)}
+main{max-width:1440px;margin:auto;padding:24px}.eyebrow{font:700 11px Arial,sans-serif;letter-spacing:.2em;color:var(--red);text-transform:uppercase}
+h1{font-size:clamp(34px,5vw,66px);line-height:1.02;margin:12px 0}h2{font-size:clamp(25px,3vw,38px);margin:8px 0 18px}h3{margin:0 0 8px;font-size:21px}
+p{color:#d0d2ca}.muted{color:var(--muted)}.small{font:12px/1.5 Arial,sans-serif;color:var(--muted)}
+.hero{min-height:65vh;display:flex;flex-direction:column;justify-content:center;max-width:900px;margin:auto}
+.rule{height:1px;background:var(--line);margin:22px 0}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+.panel{background:var(--panel);border:1px solid var(--line);padding:22px;border-radius:4px}.panel.dark{background:#111719}
+.tag{display:inline-block;border:1px solid #6d5540;color:var(--gold);padding:4px 8px;font:10px Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;margin:3px 5px 3px 0}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.tabs button{background:var(--panel2);font-size:12px}.tabs button.active{background:var(--red)}
+#map{height:390px;border:1px solid var(--line);filter:grayscale(.65) contrast(1.05)}
+.evidence{border-top:1px solid var(--line);padding:16px 0}.evidence:first-child{border:0}
+.evidence h3{font-size:18px}.evidence p{margin:7px 0}
+.quote{border-left:3px solid var(--gold);padding:10px 16px;background:#111719;color:#e2ddcf;margin:12px 0}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{background:var(--panel2);padding:16px;border:1px solid var(--line)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+textarea{width:100%;min-height:100px;background:#0f1517;color:var(--ink);border:1px solid var(--line);padding:12px}
+input{background:#0f1517;color:var(--ink);border:1px solid var(--line);padding:12px;width:100%;margin:6px 0 12px}
+.progress{height:4px;background:#293235;margin:18px 0}.progress span{display:block;height:4px;background:var(--red);width:0;transition:.3s}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#263235;padding:12px 18px;display:none;z-index:1000}
+#remote{max-width:680px;margin:auto}.remote-btn{width:100%;margin:6px 0;text-align:left;background:#293538}
+.hidden{display:none!important}.photo{width:100%;max-height:310px;object-fit:cover;background:#222}
+footer{padding:30px 0;color:var(--muted);font:11px Arial,sans-serif}
+@media(max-width:760px){main{padding:16px}.grid,.cards{grid-template-columns:1fr}#map{height:300px}header{padding:0 14px}.hero{min-height:75vh}}
+body.tv header{height:76px}body.tv main{max-width:1600px;padding:36px}body.tv p{font-size:19px}body.tv .panel{padding:28px}
+</style>
+</head>
+<body>
+<header><div class="brand">CASE FILES / 031</div><div class="room" id="roomLabel">LIVERPOOL · 1931</div></header>
+<main id="tvView">
+<section id="intro" class="hero">
+ <div class="eyebrow">Закрытое расследование · Архив Ливерпуля</div>
+ <h1>ПОСЛЕДНИЙ<br>ХОД</h1>
+ <p style="font-size:22px;max-width:720px">20 января 1931 года Джулия Уоллес была найдена убитой в собственном доме. Накануне неизвестный оставил для её мужа странное телефонное сообщение. Через несколько месяцев обвинительный приговор был отменён.</p>
+ <div class="rule"></div><div><span class="tag">Реальное дело</span><span class="tag">2–3 часа</span><span class="tag">Командное расследование</span></div>
+ <p class="small">Ваша задача — восстановить события, проверить версии и представить вывод. Вы не обязаны повторять вывод полиции или соглашаться с историческими теориями.</p>
+ <div class="actions"><button id="tvStart">ОТКРЫТЬ ДЕЛО</button></div>
+</section>
+<section id="game" class="hidden">
+ <div class="eyebrow" id="chapterNo">ГЛАВА 01</div><h2 id="chapterTitle">Исходные обстоятельства</h2>
+ <div class="progress"><span id="progressBar"></span></div>
+ <div class="grid">
+  <div class="panel" id="mainPanel"></div>
+  <div class="panel dark"><div class="eyebrow">Карта расследования</div><div id="map"></div><p class="small">Карта ориентировочная: современные улицы и точки используются для пространственного анализа, а не как точная реконструкция 1931 года.</p></div>
+ </div>
+ <div class="tabs" id="tabs"></div>
+ <div class="panel" id="detailPanel"></div>
+ <div class="actions"><button class="secondary" id="prevBtn">НАЗАД</button><button id="nextBtn">СЛЕДУЮЩИЙ ЭТАП</button></div>
+ <footer>Исторические сведения отделены от игровых реконструкций. См. «Источники и оговорки» в материалах дела.</footer>
+</section>
+</main>
+<main id="remoteView" class="hidden"><div id="remote">
+ <div class="eyebrow">Пульт следственной группы</div><h2>Управление делом</h2>
+ <div class="panel">
+  <p>Откройте эту страницу на iPhone с параметром <b>?mode=remote</b>. На телевизоре — <b>?mode=tv</b>.</p>
+  <label class="small">Код комнаты</label><input id="roomCode" value="WALLACE31" maxlength="16">
+  <button id="connectBtn">ПОДКЛЮЧИТЬСЯ</button><p class="small" id="connectionStatus">Режим локального демо. Для синхронизации двух устройств подключите Firebase (инструкция в README).</p>
+ </div>
+ <div class="panel" style="margin-top:14px"><div class="eyebrow">Действия команды</div>
+  <button class="remote-btn" data-action="reveal">Открыть следующий этап на ТВ</button>
+  <button class="remote-btn" data-action="map">Показать карту</button>
+  <button class="remote-btn" data-action="evidence">Открыть архив улик</button>
+  <button class="remote-btn" data-action="vote">Перейти к итоговому вердикту</button>
+  <label class="small">Рабочая версия команды</label><textarea id="teamTheory" placeholder="Кто мог совершить преступление? Каков мотив? Как вы объясняете звонок и временные интервалы?"></textarea>
+  <button id="saveTheory">СОХРАНИТЬ ВЕРСИЮ</button>
+ </div>
+ <div class="panel" style="margin-top:14px"><div class="eyebrow">Финальное голосование</div><p>Выберите наиболее убедительную версию после обсуждения. Это фиксирует мнение команды, а не исторический факт.</p>
+  <button class="remote-btn vote" data-vote="A">Версия A — Уоллес организовал преступление</button>
+  <button class="remote-btn vote" data-vote="B">Версия B — преступление совершил другой человек</button>
+  <button class="remote-btn vote" data-vote="C">Версия C — имеющихся данных недостаточно</button>
+  <div id="voteResult" class="small"></div>
+ </div>
+</div></main>
+<div id="toast"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getDatabase,ref,set,onValue,update} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+/* ВСТАВЬТЕ СЮДА Firebase config из консоли Firebase. Оставьте пустым для локального демо. */
+const firebaseConfig = null; // { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", appId:"..." }
+
+const chapters=[
+{title:"Исходные обстоятельства",lead:"Ливерпуль. Январь 1931 года. Уильям Герберт Уоллес — страховой агент и участник шахматного клуба. Его жена Джулия найдена мёртвой в гостиной дома на Wolverton Street.",body:`<p>20 января 1931 года Уоллес вернулся домой после поездки на другой конец города и обнаружил, что входные двери, по его словам, заперты. Соседи помогли ему попасть внутрь. В гостиной лежало тело Джулии с тяжёлыми травмами головы.</p><p>Следствие не обнаружило очевидных следов взлома. При этом первоначально рассматривалась и версия ограбления.</p><div class="quote">Ваш первый вопрос: что в этой сцене является установленным фактом, а что — интерпретацией свидетелей или полиции?</div>`,tabs:["Место преступления","Дом и планировка","Первичные вопросы"],details:[
+{title:"Место преступления",text:"Адрес: 29 Wolverton Street, район Anfield, Liverpool. Джулию обнаружили в передней гостиной. Полицейский осмотр зафиксировал отсутствие явных следов насильственного проникновения. Не делайте из этого автоматический вывод, что преступник был знаком с семьёй."},
+{title:"Дом и планировка",text:"В доме были передняя гостиная, кухня/задняя кухня, двор и входы с улицы и через заднюю часть. Архивная фотогалерея содержит виды помещений и план помещения, использовавшийся в суде. Изучите, какие маршруты входа и выхода могли существовать."},
+{title:"Первичные вопросы",text:"1) Когда Джулию в последний раз достоверно видели живой? 2) Кто мог попасть в дом без взлома? 3) Какие детали относятся к наблюдениям, а какие — к выводам?"}
+]},
+{title:"Звонок Куолтроу",lead:"За день до убийства в шахматный клуб поступил телефонный звонок. Звонивший представился R. M. Qualtrough и попросил передать Уоллесу адрес встречи: 25 Menlove Gardens East.",body:`<p>Сообщение касалось потенциального страхового клиента и встречи в 19:30 следующего вечера. Но в районе существовали Menlove Gardens North, South и West — адреса East не было.</p><p>Ключевой вопрос расследования: кто знал о привычках Уоллеса, его членстве в клубе и мог организовать звонок так, чтобы он оказался далеко от дома?</p>`,tabs:["Свидетель звонка","Адрес встречи","География звонка"],details:[
+{title:"Свидетель звонка",text:"Капитан шахматного клуба Сэмюэл Битти принял сообщение и передал его Уоллесу. Уоллес пришёл в клуб спустя некоторое время после звонка. Важно различать: свидетельство о самом звонке не устанавливает личность звонившего."},
+{title:"Адрес встречи",text:"25 Menlove Gardens East — адрес, который не удалось найти. В материалах фигурируют Menlove Gardens North, South и West. Сопоставьте это с тем, что Уоллес всё же отправился в район Menlove."},
+{title:"География звонка",text:"В полицейской версии телефонный звонок связывали с общественным телефонным аппаратом в районе Rochester Road / Breck Road, сравнительно недалеко от дома Уоллесов. Это важная наводка, но не доказательство того, кто именно звонил."}
+]},
+{title:"Маршрут и алиби",lead:"Уоллес утверждал, что вышел из дома около 18:45, добрался на трамваях до района Allerton, искал несуществующий адрес и вернулся около 20:45.",body:`<p>Полиция проводила практические проверки маршрутов трамваев. Защита, в свою очередь, заказала независимую проверку времени и расстояний. Их расчёты и исходные допущения отличались.</p><p>Ваша задача — не просто решить, «успевал ли он», а понять, насколько точны исходные отметки времени и какие допущения нужны для каждого вывода.</p>`,tabs:["Показания о времени","Проверка полиции","Проверка защиты"],details:[
+{title:"Показания о времени",text:"В материалах упоминаются молочник Алан Клоуз, трамвайные кондукторы и соседи Джон и Флоренс Джонстон. Времена наблюдений приблизительны и зависят от точности часов и памяти свидетелей."},
+{title:"Проверка полиции",text:"Полицейские повторяли часть маршрута Уоллеса, чтобы оценить, когда он мог покинуть дом и успеть на трамвай. Их тесты дали диапазон, а не абсолютную точку времени. Изучите оригинальные таблицы и сравните стартовые условия."},
+{title:"Проверка защиты",text:"Инженер P. Julian Maddock подготовил отдельный отчёт по расстояниям и времени поездок. Он критиковал точность использованной карты и анализировал показания свидетелей. Сравните методики: одинаковы ли точки старта, ожидание трамвая и пешие участки?"}
+]},
+{title:"Свидетели и альтернативные версии",lead:"Дело не сводилось к одному подозреваемому. Показания соседей, случайных свидетелей и поздние рассказы породили конкурирующие объяснения.",body:`<p>Уоллес был осуждён в апреле 1931 года, но 19 мая 1931 года Апелляционный уголовный суд отменил приговор. Суд указал, что обвинение не исключило разумную возможность иной версии.</p><p>Поздние рассказы о других возможных участниках и предполагаемых признаниях требуют особенно осторожного отношения: позднее заявление не равно подтверждённому факту.</p>`,tabs:["Соседи","Поздние версии","Судебный итог"],details:[
+{title:"Соседи",text:"Джон и Флоренс Джонстон сообщали о встрече с Уоллесом у дома около 20:45. Их показания важны для восстановления момента возвращения, но сами по себе не устанавливают время убийства."},
+{title:"Поздние версии",text:"В последующей литературе и на тематических сайтах обсуждались альтернативные подозреваемые и неподтверждённые рассказы. В этой игре такие материалы помечаются как версии, а не доказательства. Не стройте обвинение на слухе."},
+{title:"Судебный итог",text:"Приговор Уоллесу был отменён апелляцией. Это не равнозначно судебному установлению личности настоящего убийцы. Дело остаётся предметом споров и исторических исследований."}
+]},
+{title:"Финальный вердикт",lead:"Следственная группа должна представить связную версию — и честно обозначить, где заканчиваются доказательства.",body:`<p>Подготовьте короткий доклад: кто, по вашей версии, совершил убийство; как был организован звонок; как объясняется временная линия; какие три улики наиболее важны; какие факты противоречат вашей версии.</p><p><b>Правило хорошего расследования:</b> версия должна объяснять факты лучше конкурирующих версий, но не должна превращать пробелы в доказательства.</p>`,tabs:["Формат вердикта","Источники и оговорки","Что осталось неизвестным"],details:[
+{title:"Формат вердикта",text:"1) Основная версия. 2) Мотив и возможность. 3) Роль телефонного звонка. 4) Проверка временной линии. 5) Три сильнейших доказательства. 6) Самое серьёзное возражение против вашей версии."},
+{title:"Источники и оговорки",text:"Основные открытые источники: Liverpool City Police — исторический обзор; The Julia Wallace Murder Foundation — архивные фотографии, полицейские материалы и показания; отчёт инженера P. Julian Maddock; опубликованный текст апелляционного решения R v Wallace. Ссылки: liverpoolcitypolice.co.uk/murders/julia-wallace-murder/ ; williamherbertwallace.com/case-files/ ; williamherbertwallace.com/gallery/crime-scene-photos/ ; infotextmanuscripts.org/other_rex_v_wallace.pdf. Часть деталей в игре сокращена для темпа; спорные и поздние утверждения маркируются отдельно."},
+{title:"Что осталось неизвестным",text:"Личность человека, совершившего убийство, не была установлена окончательным судебным решением. Ни один игровой ответ не должен выдаваться за доказанную историческую истину. Побеждает не команда, угадавшая «правильное имя», а команда, которая лучше аргументировала границы возможного."}
+]}
+];
+
+const mapPoints=[
+{n:"29 Wolverton Street — дом Уоллесов",lat:53.4527,lon:-2.9631,desc:"Место убийства. Координаты ориентировочные."},
+{n:"Cottle’s City Café — шахматный клуб",lat:53.4078,lon:-2.9876,desc:"24 North John Street; место, где приняли телефонное сообщение."},
+{n:"Rochester Road / Breck Road",lat:53.4535,lon:-2.9568,desc:"Район телефонной будки, указанной в полицейской версии."},
+{n:"Menlove Gardens",lat:53.377,lon:-2.88,desc:"Район поисков несуществующего адреса East."}
+];
+let chapter=0,detail=0,map,db=null,room="WALLACE31",connected=false;
+const $=id=>document.getElementById(id);
+const params=new URLSearchParams(location.search),mode=params.get("mode")||"tv";
+if(mode==="tv"){document.body.classList.add("tv");$("remoteView").classList.add("hidden")}else{$("tvView").classList.add("hidden");$("remoteView").classList.remove("hidden")}
+function toast(s){$("toast").textContent=s;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",2200)}
+function render(){
+ const c=chapters[chapter];$("chapterNo").textContent=`ГЛАВА ${String(chapter+1).padStart(2,"0")} / 05`;$("chapterTitle").textContent=c.title;$("mainPanel").innerHTML=`<div class="eyebrow">Материалы дела</div><h3>${c.lead}</h3>${c.body}`;$("progressBar").style.width=((chapter+1)/chapters.length*100)+"%";
+ $("tabs").innerHTML=c.tabs.map((t,i)=>`<button class="${i===detail?"active":""}" data-tab="${i}">${t}</button>`).join("");
+ $("detailPanel").innerHTML=`<div class="eyebrow">Архивный документ / ${String(detail+1).padStart(2,"0")}</div><h3>${c.details[detail].title}</h3><p>${c.details[detail].text}</p>`;
+ document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{detail=+b.dataset.tab;render()});
+ $("prevBtn").disabled=chapter===0;$("nextBtn").textContent=chapter===chapters.length-1?"ВЕРНУТЬСЯ К ВЕРДИКТУ":"СЛЕДУЮЩИЙ ЭТАП";
+}
+function showGame(){ $("intro").classList.add("hidden");$("game").classList.remove("hidden");render();if(!map){map=L.map("map").setView([53.414,-2.93],11);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:'© OpenStreetMap contributors'}).addTo(map);mapPoints.forEach(p=>L.marker([p.lat,p.lon]).addTo(map).bindPopup(`<b>${p.n}</b><br>${p.desc}`))}setTimeout(()=>map.invalidateSize(),100)}
+$("tvStart").onclick=()=>{showGame();publish({chapter:0,started:true})};
+$("prevBtn").onclick=()=>{chapter=Math.max(0,chapter-1);detail=0;render();publish({chapter})};
+$("nextBtn").onclick=()=>{chapter=Math.min(chapters.length-1,chapter+1);detail=0;render();publish({chapter})};
+async function initFirebase(){if(!firebaseConfig)return;const app=initializeApp(firebaseConfig);db=getDatabase(app);connected=true;$("connectionStatus").textContent="Firebase подключён. Комната: "+room;onValue(ref(db,"rooms/"+room),snap=>{const s=snap.val();if(mode==="tv"&&s&&Number.isInteger(s.chapter)){chapter=s.chapter;detail=0;if(s.started)showGame();else render()}})}
+async function publish(data){if(db){await update(ref(db,"rooms/"+room),data)}}
+$("connectBtn")?.addEventListener("click",async()=>{room=$("roomCode").value.trim().toUpperCase()||"WALLACE31";try{await initFirebase();if(!db){$("connectionStatus").textContent="Firebase не настроен: пока работает только локальный режим. Смотрите README.";toast("Нет подключения к серверу")}}catch(e){toast("Ошибка Firebase: "+e.message)}});
+document.querySelectorAll("[data-action]").forEach(b=>b.onclick=async()=>{const a=b.dataset.action;if(a==="reveal"){chapter=Math.min(chapters.length-1,chapter+1);detail=0;await publish({chapter,started:true})}if(a==="map"){await publish({chapter:Math.max(chapter,1),started:true,focus:"map"})}if(a==="evidence"){await publish({chapter:0,started:true})}if(a==="vote"){await publish({chapter:4,started:true})}toast("Команда отправлена")});
+$("saveTheory")?.addEventListener("click",async()=>{await publish({theory:$("teamTheory").value});toast("Версия сохранена")});
+document.querySelectorAll(".vote").forEach(b=>b.onclick=async()=>{await publish({vote:b.dataset.vote});$("voteResult").textContent="Ваш выбор: "+b.dataset.vote;toast("Голос зафиксирован")});
+if(mode==="tv"&&firebaseConfig){initFirebase().catch(e=>console.error(e))}
+</script>
+</body></html>
